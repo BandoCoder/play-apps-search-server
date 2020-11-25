@@ -7,10 +7,17 @@ const app = express();
 app.use(morgan("common"));
 
 app.get("/apps", (req, res) => {
-  const { sort, genre } = req.query;
-  let result = playstore;
+  const { sort, genre = "" } = req.query;
 
-  if (genre) {
+  if (sort) {
+    if (!["Rating", "App"].includes(sort)) {
+      return res
+        .status(400)
+        .send("Must be sorted by rating or app name, nothing else");
+    }
+  }
+
+  if (genre != "") {
     if (
       !["Action", "Puzzle", "Strategy", "Casual", "Arcade", "Card"].includes(
         genre
@@ -19,32 +26,26 @@ app.get("/apps", (req, res) => {
       return res
         .status(400)
         .send(
-          "Must include one of the following parameters: Action, Puzzle, Strategy, Casual, Arcade, or Card"
+          "Not a listed genre, please use: Action, Puzzle, Strategy, Casual, Arcade, or Card"
         );
-    } else if (
-      ["Action", "Puzzle", "Strategy", "Casual", "Arcade", "Card"].includes(
-        genre
-      )
-    ) {
-      result = playstore.filter((genre) => {
-        return playstore.Genres === genre;
-      });
-    } else {
-      result = playstore;
     }
   }
+
+  let filtered = playstore.filter((app) => app.Genres.includes(genre));
 
   if (sort) {
-    if (!["rating", "app"].includes(sort)) {
-      return res.status(400).send("Sort must by rating or app");
-    } else {
-      result = playstore.sort((a, b) => {
+    if (sort === "App") {
+      filtered.sort((a, b) => {
         return a[sort] > b[sort] ? 1 : a[sort] < b[sort] ? -1 : 0;
+      });
+    } else if (sort === "Rating") {
+      filtered.sort((a, b) => {
+        return a[sort] < b[sort] ? 1 : a[sort] > b[sort] ? -1 : 0;
       });
     }
   }
 
-  res.json(result);
+  res.json(filtered);
 });
 
 app.listen(8000, () => {
